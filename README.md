@@ -1,8 +1,8 @@
-* About
-** 2019/03/15
-** Dudals Jung
-** miscellany@gmail.com
-** www.dudals.net
+> About
+>> 2019/03/15
+>> Dudals Jung
+>> miscellany@gmail.com
+>> www.dudals.net
 
 * Hardware
 ** M5Stack
