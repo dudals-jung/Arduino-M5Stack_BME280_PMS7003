@@ -34,5 +34,5 @@
 
 * if you want Save to SD Card, WIFI transmit.... Yes, You can do it.
 
-* Checksum checking of data received from PMS7003 is not implemented * 
+* Checksum checking of data received from PMS7003 is not implemented
   * PMS7003 Data size is Fiexed 32 byte.
