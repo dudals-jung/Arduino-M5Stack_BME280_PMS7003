@@ -14,7 +14,7 @@
   * (Add BlueDot_BME280 Library)
 
 * Spec  
-  * M5Stack is a small module with CPU, LCD, battery, GPIO.
+  * M5Stack is a small module with CPU, LCD, battery, Wifi, Bluetooth, GPIO. 
   * PMS7003 is a fine dust sensor.
   * BME280 is temperature, humidity, air pressure, and altitude sensor.
 
