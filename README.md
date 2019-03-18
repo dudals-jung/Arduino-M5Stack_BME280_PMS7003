@@ -30,3 +30,6 @@ The fine dust measurement standard is Korean standard.
 I don't have smd parts in home, so no pull up, no pull down.
 if you have parts, you can apply them.
 I have not yet machined a hole in the case.
+
+
+if you want Save to SD Card, WIFI transmit.... Yes, You can do it.
