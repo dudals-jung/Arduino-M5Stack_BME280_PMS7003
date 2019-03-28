@@ -5,7 +5,7 @@
   https://dl.espressif.com/dl/package_esp32_index.json
 
  * PMS7003 - Serial
- * BMe280 - I2C1
+ * BME280 - I2C1
  * Dudals Jung
  * miscellany@gmail.com
  * www.dudals.net
@@ -25,6 +25,8 @@
 BlueDot_BME280 bme280;
 int bme280_Detected = 0;
 
+int BatteryLevel = 0;
+
 int PMS7003_PM1_0 = 0;
 int PMS7003_PM2_5 = 0;
 int PMS7003_PM10 = 0;
@@ -34,7 +36,37 @@ float BME280_Humidity = 0;
 float BME280_Pressure = 0;
 float BME280_AltitudeMeter = 0;
 
-TFT_eSprite img = TFT_eSprite(&M5.Lcd); // Create Sprite object "img" with pointer to "tft" object      
+uint16_t PMS7003_PM1_0_RangeMax[4] = {15, 35,  75, 300}; // 0~15 Good, 16~35 Normal, 36~75 Bad, 75~ Very bad
+uint16_t PMS7003_PM2_5_RangeMax[4] = {15, 35,  75, 300};
+uint16_t PMS7003_PM10_RangeMax[4] =  {30, 80, 100, 300};
+
+TFT_eSprite img = TFT_eSprite(&M5.Lcd); // Create Sprite object "img" with pointer to "tft" object
+
+// Testing 
+int8_t GetBatteryLevel()
+{
+    Wire.beginTransmission(0x75);
+    Wire.write(0x78);
+    
+    BatteryLevel = -1;
+
+    if (Wire.endTransmission(false) == 0 && Wire.requestFrom(0x75, 1)) 
+    {
+        switch (Wire.read() & 0xF0) 
+        {
+            case 0xE0: 
+                BatteryLevel = 25;
+            case 0xC0: 
+                BatteryLevel = 50;
+            case 0x80: 
+                BatteryLevel = 75;
+            case 0x00: 
+                BatteryLevel = 100;
+            default: 
+                BatteryLevel = 0;
+        }
+    }
+}
 
 void task_active(void * pvParameters) 
 {
@@ -45,80 +77,79 @@ void task_active(void * pvParameters)
     {
         img.fillRect(0, 50, 320, 190, TFT_BLACK);
 
+        img.setTextDatum(TC_DATUM);
+
+        img.setFreeFont(FM9);
+
+        sprintf(textBuffer,"Battery Level : %3d ", BatteryLevel);
+        img.drawString(textBuffer, 160, 20, GFXFF);// Print the string name of the font
+
         img.setTextDatum(TL_DATUM);
 
         img.setFreeFont(FM18);
 
-        if (PMS7003_PM1_0 <= 15)
+        if (PMS7003_PM1_0 <= PMS7003_PM1_0_RangeMax[0])
             TextColor = TFT_BLUE;
-        else if (PMS7003_PM1_0 <= 35)
+        else if (PMS7003_PM1_0 <= PMS7003_PM1_0_RangeMax[1])
             TextColor = TFT_GREEN;
-        else if (PMS7003_PM1_0 <= 75)
+        else if (PMS7003_PM1_0 <= PMS7003_PM1_0_RangeMax[2])
             TextColor = TFT_YELLOW;
         else
             TextColor = TFT_RED;
         
-//        img.setTextColor(TextColor);
         sprintf(textBuffer,"PM 1.0 : %3d\n", PMS7003_PM1_0);
         img.drawString(textBuffer, 10, 50, GFXFF);// Print the string name of the font
 
-//        img.fillRect(280, 50, 20, 20, TextColor); // now
-        img.fillCircle(290, 50+10+2, 10, TextColor); // now
+        img.fillCircle(290, 50 + 10 + 2, 10, TextColor); // now
 
-        img.fillRect(10, 80, 15, 2, TFT_BLUE); // 0 ~ 15 좋음
-        img.fillRect(10+15, 80, 20, 2, TFT_GREEN); // 16 ~ 35 보통
-        img.fillRect(10+35, 80, 40, 2, TFT_YELLOW); // 36 ~ 75 나쁨
-        img.fillRect(10+75, 80, 200, 2, TFT_RED); // 76 ~ 매우 나쁨
+        img.fillRect(10, 80, PMS7003_PM1_0_RangeMax[0], 3, TFT_BLUE); // 0 ~ 15 Good
+        img.fillRect(10 + PMS7003_PM1_0_RangeMax[0], 80, PMS7003_PM1_0_RangeMax[1] - PMS7003_PM1_0_RangeMax[0], 3, TFT_GREEN); // 16 ~ 35 Normal
+        img.fillRect(10 + PMS7003_PM1_0_RangeMax[1], 80, PMS7003_PM1_0_RangeMax[2] - PMS7003_PM1_0_RangeMax[1], 3, TFT_YELLOW); // 36 ~ 75 Bad
+        img.fillRect(10 + PMS7003_PM1_0_RangeMax[2], 80, PMS7003_PM1_0_RangeMax[3] - PMS7003_PM1_0_RangeMax[2], 3, TFT_RED); // 76 ~ Very Bad
 
-//        img.fillRect(10+PMS7003_PM1_0, 78, 2, 6, TFT_WHITE); // Now
-        img.fillTriangle(10+PMS7003_PM1_0-3, 90,10+PMS7003_PM1_0, 82,10+PMS7003_PM1_0+3, 90, TFT_WHITE);
+        img.fillTriangle(10 + PMS7003_PM1_0 - 3, 95, 10 + PMS7003_PM1_0, 82,10 + PMS7003_PM1_0 + 3, 95, TFT_WHITE);
 
-        if (PMS7003_PM2_5 <= 15)
+        if (PMS7003_PM2_5 <= PMS7003_PM2_5_RangeMax[0])
             TextColor = TFT_BLUE;
-        else if (PMS7003_PM2_5 <= 35)
+        else if (PMS7003_PM2_5 <= PMS7003_PM2_5_RangeMax[1])
             TextColor = TFT_GREEN;
-        else if (PMS7003_PM2_5 <= 75)
+        else if (PMS7003_PM2_5 <= PMS7003_PM2_5_RangeMax[2])
             TextColor = TFT_YELLOW;
         else
             TextColor = TFT_RED;
         
-//        img.setTextColor(TextColor);
         sprintf(textBuffer,"PM 2.5 : %3d\n", PMS7003_PM2_5);
         img.drawString(textBuffer, 10, 100, GFXFF);// Print the string name of the font
 
-        img.fillCircle(290, 100+10+2, 10, TextColor); // now
+        img.fillCircle(290, 100 + 10 + 2, 10, TextColor); // now
 
-        img.fillRect(10, 130, 15, 2, TFT_BLUE); // 0 ~ 15 좋음
-        img.fillRect(10+15, 130, 20, 2, TFT_GREEN); // 16 ~ 35 보통
-        img.fillRect(10+35, 130, 40, 2, TFT_YELLOW); // 36 ~ 75 나쁨
-        img.fillRect(10+75, 130, 200, 2, TFT_RED); // 76 ~ 매우 나쁨
+        img.fillRect(10, 130, PMS7003_PM2_5_RangeMax[0], 3, TFT_BLUE); // 0 ~ 15 Good
+        img.fillRect(10 + PMS7003_PM2_5_RangeMax[0], 130, PMS7003_PM2_5_RangeMax[1] - PMS7003_PM2_5_RangeMax[0], 3, TFT_GREEN); // 16 ~ 35 Normal
+        img.fillRect(10 + PMS7003_PM2_5_RangeMax[1], 130, PMS7003_PM2_5_RangeMax[2] - PMS7003_PM2_5_RangeMax[1], 3, TFT_YELLOW); // 36 ~ 75 Bad
+        img.fillRect(10 + PMS7003_PM2_5_RangeMax[2], 130, PMS7003_PM2_5_RangeMax[3] - PMS7003_PM2_5_RangeMax[2], 3, TFT_RED); // 76 ~ Very Bad
 
-//        img.fillRect(10+PMS7003_PM2_5, 128, 2, 6, TFT_WHITE); // Now
-        img.fillTriangle(10+PMS7003_PM2_5-3, 140,10+PMS7003_PM2_5, 132,10+PMS7003_PM2_5+3, 140, TFT_WHITE);
+        img.fillTriangle(10+PMS7003_PM2_5 - 3, 145, 10 + PMS7003_PM2_5, 132,10 + PMS7003_PM2_5 + 3, 145, TFT_WHITE);
 
-        if (PMS7003_PM10 <= 30)
+        if (PMS7003_PM10 <= PMS7003_PM10_RangeMax[0])
             TextColor = TFT_BLUE;
-        else if (PMS7003_PM10 <= 80)
+        else if (PMS7003_PM10 <= PMS7003_PM10_RangeMax[1])
             TextColor = TFT_GREEN;
-        else if (PMS7003_PM10 <= 100)
+        else if (PMS7003_PM10 <= PMS7003_PM10_RangeMax[2])
             TextColor = TFT_YELLOW;
         else
             TextColor = TFT_RED;
         
-//        img.setTextColor(TextColor);
         sprintf(textBuffer,"PM 10  : %3d\n", PMS7003_PM10);
         img.drawString(textBuffer, 10, 150, GFXFF);// Print the string name of the font
 
-//        img.fillRect(280, 150, 20, 20, TextColor); // now
-        img.fillCircle(290, 150+10+2, 10, TextColor); // now
+        img.fillCircle(290, 150 + 10 + 2, 10, TextColor); // now
 
-        img.fillRect(10, 180, 30, 2, TFT_BLUE); // 0 ~ 30 좋음
-        img.fillRect(10+30, 180, 50, 2, TFT_GREEN); // 31 ~ 80 보통
-        img.fillRect(10+80, 180, 20, 2, TFT_YELLOW); // 81 ~ 100 나쁨
-        img.fillRect(10+100, 180, 175, 2, TFT_RED); // 100 ~ 매우 나쁨
+        img.fillRect(10, 180, PMS7003_PM10_RangeMax[0], 3, TFT_BLUE); // 0 ~ 30 Good
+        img.fillRect(10 + PMS7003_PM10_RangeMax[0], 180, PMS7003_PM10_RangeMax[1] - PMS7003_PM10_RangeMax[0], 3, TFT_GREEN); // 31 ~ 80 Normal
+        img.fillRect(10 + PMS7003_PM10_RangeMax[1], 180, PMS7003_PM10_RangeMax[2] - PMS7003_PM10_RangeMax[1], 3, TFT_YELLOW); // 81 ~ 100 Bad
+        img.fillRect(10 + PMS7003_PM10_RangeMax[2], 180, PMS7003_PM10_RangeMax[3] - PMS7003_PM10_RangeMax[2], 3, TFT_RED); // 100 ~ Very Bad
 
-//        img.fillRect(10+PMS7003_PM10, 178, 2, 6, TFT_WHITE); // Now
-        img.fillTriangle(10+PMS7003_PM10-3, 190,10+PMS7003_PM10, 182,10+PMS7003_PM10+3, 190, TFT_WHITE);
+        img.fillTriangle(10 + PMS7003_PM10 - 3, 195, 10 + PMS7003_PM10, 182,10 + PMS7003_PM10 + 3, 195, TFT_WHITE);
 
         img.setTextDatum(TC_DATUM);
         img.setFreeFont(FM12);
@@ -155,10 +186,8 @@ void task_pms7003(void * pvParameters)
                 PMS7003_PM1_0 = (pms7003_rx[10] <<8) | pms7003_rx[11];
                 PMS7003_PM2_5 = (pms7003_rx[12] <<8) | pms7003_rx[13];
                 PMS7003_PM10  = (pms7003_rx[14] <<8) | pms7003_rx[15];
-
             }
         }
-        
         delay(1);
     }
 }
@@ -174,14 +203,18 @@ void task_bme280(void * pvParameters)
             BME280_Pressure = bme280.readPressure();
             BME280_AltitudeMeter = bme280.readAltitudeMeter();
         }
-     
-    delay(500);
+
+        GetBatteryLevel();
+       
+        delay(500);
     }
 }
 
 void setup() 
 {
     M5.begin();
+    Wire.begin();
+  
     M5.Lcd.fillScreen(TFT_BLACK);
     
     img.setColorDepth(8);
